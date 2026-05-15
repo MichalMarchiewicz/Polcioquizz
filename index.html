@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz App</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #fafaf8;
+      color: #1a1a18;
+    }
+    
+    #app { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+    
+    .header {
+      background: white;
+      border-bottom: 1px solid #e8e6e2;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header-stats { font-size: 12px; color: #666661; }
+    
+    .main { flex: 1; padding: 20px; max-width: 600px; margin: 0 auto; width: 100%; }
+    
+    .view { display: none; }
+    .view.active { display: block; }
+    
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #0066cc;
+      color: white;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+    
+    .btn-primary:hover { background: #0052a3; }
+    .btn-secondary { background: #f5f3f0; color: #1a1a18; border: 1px solid #e8e6e2; }
+    .btn-danger { background: #d32f2f; color: white; }
+    .btn-danger:hover { background: #b71c1c; }
+    .btn-small { padding: 8px 12px; font-size: 12px; }
+    
+    .quiz-card {
+      background: white;
+      border: 1px solid #e8e6e2;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .quiz-card:hover {
+      border-color: #0066cc;
+      transform: translateY(-2px);
+    }
+    
+    .quiz-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+    
+    .quiz-card h3 { margin-bottom: 8px; flex: 1; }
+    .quiz-card p { font-size: 13px; color: #666661; }
+    
+    .quiz-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .quiz-actions button {
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #e8e6e2;
+      border-radius: 8px;
+      font: inherit;
+    }
+    
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    
+    .question-card {
+      background: white;
+      border: 1px solid #e8e6e2;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .question-image {
+      width: 100%;
+      max-height: 280px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      object-fit: cover;
+    }
+    
+    .question-text {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+    
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    
+    .option {
+      padding: 14px;
+      border: 2px solid #e8e6e2;
+      border-radius: 8px;
+      background: #f5f3f0;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-size: 14px;
+    }
+    
+    .option:hover:not(.disabled) {
+      border-color: #0066cc;
+      background: white;
+      transform: translateX(4px);
+    }
+    
+    .option.disabled { cursor: not-allowed; opacity: 0.6; }
+    .option.correct { border-color: #10a857; background: rgba(16, 168, 87, 0.1); color: #10a857; }
+    .option.incorrect { border-color: #d32f2f; background: rgba(211, 47, 47, 0.1); color: #d32f2f; }
+    
+    .feedback {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    
+    .feedback.correct { background: rgba(16, 168, 87, 0.1); color: #10a857; }
+    .feedback.incorrect { background: rgba(211, 47, 47, 0.1); color: #d32f2f; }
+    
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #f5f3f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: #0066cc;
+      transition: width 0.3s;
+    }
+    
+    .results-score { font-size: 48px; font-weight: 700; color: #10a857; margin: 30px 0 20px; text-align: center; }
+    .results-message { font-size: 16px; text-align: center; margin-bottom: 30px; color: #666661; }
+    
+    .detail { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e8e6e2; }
+    .detail:last-child { border-bottom: none; }
+    
+    .section-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+    
+    .question-item {
+      background: white;
+      border: 1px solid #e8e6e2;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active { display: flex; }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+    .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
+    .modal-buttons button { flex: 1; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>📚 Quiz</h1>
+    <div class="header-stats" id="headerStats">Zacznij quiz</div>
+  </div>
+
+  <div class="main">
+    <!-- HOME VIEW -->
+    <div id="homeView" class="view active">
+      <div class="section-title">Moje quizy</div>
+      <button class="btn btn-primary" onclick="app.showView('addQuiz')">+ Nowy quiz</button>
+      <div id="quizList"></div>
+    </div>
+
+    <!-- ADD/EDIT QUIZ VIEW -->
+    <div id="addQuizView" class="view">
+      <div class="section-title" id="addQuizTitle">Nowy quiz</div>
+      <div class="form-group">
+        <label>Nazwa quizu</label>
+        <input type="text" id="quizName" placeholder="np. Znaki drogowe">
+      </div>
+      <div id="questionsContainer"></div>
+      <button class="btn btn-secondary" onclick="app.addQuestion()" style="width: 100%; margin-bottom: 12px;">+ Dodaj pytanie</button>
+      <button class="btn btn-primary" onclick="app.saveQuiz()">Zapisz quiz</button>
+      <button class="btn btn-secondary" onclick="app.showView('home')" style="width: 100%;">Anuluj</button>
+    </div>
+
+    <!-- QUIZ VIEW -->
+    <div id="quizView" class="view">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="question-card">
+        <img id="questionImage" class="question-image" style="display: none;">
+        <div class="question-text" id="questionText"></div>
+        <div class="options" id="optionsContainer"></div>
+        <div id="feedbackContainer"></div>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="app.quitQuiz()" style="flex: 1;">Wyjdź</button>
+        <button class="btn btn-primary" id="nextBtn" onclick="app.nextQuestion()" style="flex: 1;" disabled>Dalej</button>
+      </div>
+    </div>
+
+    <!-- RESULTS VIEW -->
+    <div id="resultsView" class="view">
+      <div style="text-align: center;">
+        <h2 style="margin-bottom: 20px;">Wyniki</h2>
+        <div class="results-score" id="resultScore"></div>
+        <div class="results-message" id="resultMessage"></div>
+      </div>
+      
+      <div style="background: white; border: 1px solid #e8e6e2; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div class="detail">
+          <span>Opanowane pytania</span>
+          <strong id="correctCount">0</strong>
+        </div>
+        <div class="detail">
+          <span>Pozostało do nauki</span>
+          <strong id="remainingCount">0</strong>
+        </div>
+        <div class="detail">
+          <span>Liczba prób</span>
+          <strong id="totalAttempts">0</strong>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="app.showView('home')" style="flex: 1;">Do domu</button>
+        <button class="btn btn-primary" onclick="app.retryQuiz()" style="flex: 1;">Powtórz</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESET MODAL -->
+<div id="resetModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">Resetuj quiz?</div>
+    <p style="color: #666661; margin-bottom: 20px;">To wyczyści postęp dla wszystkich pytań w tym quizie.</p>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="app.closeModal('resetModal')">Anuluj</button>
+      <button class="btn btn-danger" onclick="app.confirmReset()">Resetuj</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="deleteModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">Usuń quiz?</div>
+    <p style="color: #666661; margin-bottom: 20px;">Tej czynności nie można cofnąć.</p>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="app.closeModal('deleteModal')">Anuluj</button>
+      <button class="btn btn-danger" onclick="app.confirmDelete()">Usuń</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const app = {
+  quizzes: JSON.parse(localStorage.getItem('quizzes')) || [
+    {
+      id: 1,
+      name: 'Przykład: Znaki drogowe',
+      questions: [
+        { id: 1, text: 'Co oznacza znak STOP?', options: ['Zjedź na prawo', 'Musisz się zatrzymać', 'Zwolnij'], correct: 1, image: 'https://michalmarchiewicz.github.io/Polcioquizz/stop.svg', mastered: false },
+        { id: 2, text: 'Jak wygląda znak pierwszeństwa?', options: ['Żółty trójkąt', 'Żółty romb', 'Biały kwadrat'], correct: 1, image: 'https://michalmarchiewicz.github.io/Polcioquizz/droga_z_pierwszenstwem.svg', mastered: false },
+        { id: 3, text: 'Co oznacza ten znak?', options: ['Droga z pierwszeństwem', 'Przejście dla pieszych', 'Ustąp pierwszeństwa'], correct: 2, image: 'https://michalmarchiewicz.github.io/Polcioquizz/ustap_pierwszenstwo.svg', mastered: false },
+        { id: 4, text: 'Jaki to znak?', options: ['Przejście dla pieszych', 'Zakaz wjazdu', 'Droga jednokierunkowa'], correct: 1, image: 'https://michalmarchiewicz.github.io/Polcioquizz/zakaz-wjazdu.svg', mastered: false },
+        { id: 5, text: 'Co oznacza ten znak?', options: ['Zakaz zatrzymywania', 'Zakaz ruchu pieszych', 'Koniec drogi'], correct: 0, image: 'https://michalmarchiewicz.github.io/Polcioquizz/zakaz-zatrzymywania.svg', mastered: false },
+        { id: 6, text: 'Jaki to znak?', options: ['Przejście dla pieszych', 'Droga dla pieszych', 'Koniec drogi dla pieszych i rowerów'], correct: 0, image: 'https://michalmarchiewicz.github.io/Polcioquizz/zakaz_ruchu_pieszych.svg', mastered: false },
+      ]
+    }
+  ],
+  currentQuiz: null,
+  currentQuestion: null,
+  attempts: 0,
+  editingQuizId: null,
+  pendingResetId: null,
+  pendingDeleteId: null,
+
+  init() {
+    this.renderHome();
+  },
+
+  showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(name + 'View').classList.add('active');
+  },
+
+  openModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
+  },
+
+  closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+  },
+
+  renderHome() {
+    this.showView('home');
+    const list = document.getElementById('quizList');
+    list.innerHTML = this.quizzes.map(q => {
+      const masteredCount = q.questions.filter(qu => qu.mastered).length;
+      return `
+        <div class="quiz-card">
+          <div class="quiz-card-header">
+            <div style="flex: 1; cursor: pointer;" onclick="app.startQuiz(${q.id})">
+              <h3>${q.name}</h3>
+              <p>${q.questions.length} pytań</p>
+              <p style="font-size: 12px; color: #10a857;">✓ ${masteredCount} opanowane</p>
+            </div>
+            <div class="quiz-actions">
+              <button class="btn btn-secondary btn-small" onclick="app.editQuiz(${q.id})">Edytuj</button>
+              <button class="btn btn-secondary btn-small" onclick="app.openResetModal(${q.id})">Reset</button>
+              <button class="btn btn-danger btn-small" onclick="app.openDeleteModal(${q.id})">Usuń</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  startQuiz(id) {
+    this.currentQuiz = this.quizzes.find(q => q.id === id);
+    this.attempts = 0;
+    this.showView('quiz');
+    this.nextQuestion();
+  },
+
+  nextQuestion() {
+    const remaining = this.currentQuiz.questions.filter(q => !q.mastered);
+    
+    if (remaining.length === 0) {
+      this.finishQuiz();
+      return;
+    }
+
+    this.currentQuestion = remaining[Math.floor(Math.random() * remaining.length)];
+    this.renderQuestion();
+    document.getElementById('nextBtn').disabled = true;
+  },
+
+  renderQuestion() {
+    const q = this.currentQuestion;
+    document.getElementById('questionText').textContent = q.text;
+    
+    const img = document.getElementById('questionImage');
+    if (q.image) {
+      img.src = q.image;
+      img.style.display = 'block';
+    } else {
+      img.style.display = 'none';
+    }
+
+    const opts = document.getElementById('optionsContainer');
+    opts.innerHTML = q.options.map((opt, i) => `
+      <button class="option" onclick="app.answer(${i})" id="opt-${i}">${opt}</button>
+    `).join('');
+
+    document.getElementById('feedbackContainer').innerHTML = '';
+    
+    const total = this.currentQuiz.questions.length;
+    const mastered = this.currentQuiz.questions.filter(qu => qu.mastered).length;
+    document.getElementById('headerStats').textContent = `${mastered}/${total} opanowane`;
+    document.getElementById('progressFill').style.width = `${(mastered / total) * 100}%`;
+  },
+
+  answer(idx) {
+    this.attempts++;
+    const isCorrect = idx === this.currentQuestion.correct;
+    const feedback = document.getElementById('feedbackContainer');
+    
+    document.querySelectorAll('.option').forEach((opt, i) => {
+      opt.classList.add('disabled');
+      if (i === this.currentQuestion.correct) opt.classList.add('correct');
+      if (i === idx && !isCorrect) opt.classList.add('incorrect');
+    });
+
+    if (isCorrect) {
+      this.currentQuestion.mastered = true;
+      feedback.innerHTML = '<div class="feedback correct">✓ Świetnie!</div>';
+    } else {
+      feedback.innerHTML = '<div class="feedback incorrect">✗ Spróbuj jeszcze raz.</div>';
+    }
+
+    document.getElementById('nextBtn').disabled = false;
+    this.save();
+  },
+
+  finishQuiz() {
+    const total = this.currentQuiz.questions.length;
+    const mastered = this.currentQuiz.questions.filter(q => q.mastered).length;
+    
+    document.getElementById('resultScore').textContent = `${mastered}/${total}`;
+    document.getElementById('resultMessage').textContent = mastered === total ? '🎉 Gratulacje!' : 'Świetna robota!';
+    document.getElementById('correctCount').textContent = mastered;
+    document.getElementById('remainingCount').textContent = total - mastered;
+    document.getElementById('totalAttempts').textContent = this.attempts;
+    
+    this.showView('results');
+  },
+
+  retryQuiz() {
+    this.currentQuiz.questions.forEach(q => q.mastered = false);
+    this.startQuiz(this.currentQuiz.id);
+  },
+
+  quitQuiz() {
+    if (confirm('Wyjść?')) this.renderHome();
+  },
+
+  editQuiz(id) {
+    this.editingQuizId = id;
+    const quiz = this.quizzes.find(q => q.id === id);
+    document.getElementById('addQuizTitle').textContent = 'Edytuj quiz';
+    document.getElementById('quizName').value = quiz.name;
+    
+    const container = document.getElementById('questionsContainer');
+    container.innerHTML = '';
+    quiz.questions.forEach((q, idx) => {
+      const el = document.createElement('div');
+      el.className = 'question-item';
+      el.innerHTML = `
+        <div class="form-group">
+          <label>Pytanie ${idx + 1}</label>
+          <textarea class="q-text">${q.text}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Opcja A</label>
+          <input type="text" class="q-opt-0" value="${q.options[0]}">
+        </div>
+        <div class="form-group">
+          <label>Opcja B</label>
+          <input type="text" class="q-opt-1" value="${q.options[1]}">
+        </div>
+        <div class="form-group">
+          <label>Opcja C</label>
+          <input type="text" class="q-opt-2" value="${q.options[2]}">
+        </div>
+        <div class="form-group">
+          <label>Prawidłowa odpowiedź</label>
+          <select class="q-correct">
+            <option value="0" ${q.correct === 0 ? 'selected' : ''}>A</option>
+            <option value="1" ${q.correct === 1 ? 'selected' : ''}>B</option>
+            <option value="2" ${q.correct === 2 ? 'selected' : ''}>C</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Grafika</label>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-small" onclick="this.parentElement.querySelector('.q-image-file').click()">📷 Wybierz plik</button>
+            <span class="q-image-name" style="font-size:13px; color:#666;">${q.image ? 'Grafika zapisana' : 'Brak grafiki'}</span>
+          </div>
+          <input type="file" class="q-image-file" accept="image/*" style="display:none" onchange="app.previewImage(this)">
+          <img class="q-image-preview" style="max-width:100%; max-height:150px; ${q.image ? '' : 'display:none;'} border-radius:8px; margin-top:8px; object-fit:contain;" src="${q.image || ''}">
+          <input type="hidden" class="q-image" value="${q.image || ''}">
+        </div>
+        <button class="btn btn-danger" onclick="this.parentElement.remove()" style="width: 100%;">Usuń pytanie</button>
+      `;
+      container.appendChild(el);
+    });
+    
+    this.showView('addQuiz');
+  },
+
+  addQuestion() {
+    const container = document.getElementById('questionsContainer');
+    const idx = container.children.length;
+    const el = document.createElement('div');
+    el.className = 'question-item';
+    el.innerHTML = `
+      <div class="form-group">
+        <label>Pytanie ${idx + 1}</label>
+        <textarea class="q-text" placeholder="Pytanie"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Opcja A</label>
+        <input type="text" class="q-opt-0" placeholder="A">
+      </div>
+      <div class="form-group">
+        <label>Opcja B</label>
+        <input type="text" class="q-opt-1" placeholder="B">
+      </div>
+      <div class="form-group">
+        <label>Opcja C</label>
+        <input type="text" class="q-opt-2" placeholder="C">
+      </div>
+      <div class="form-group">
+        <label>Prawidłowa odpowiedź</label>
+        <select class="q-correct">
+          <option value="0">A</option>
+          <option value="1">B</option>
+          <option value="2">C</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Grafika</label>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary btn-small" onclick="this.parentElement.querySelector('.q-image-file').click()">📷 Wybierz plik</button>
+          <span class="q-image-name" style="font-size:13px; color:#666;">Brak grafiki</span>
+        </div>
+        <input type="file" class="q-image-file" accept="image/*" style="display:none" onchange="app.previewImage(this)">
+        <img class="q-image-preview" style="max-width:100%; max-height:150px; display:none; border-radius:8px; margin-top:8px; object-fit:contain;">
+        <input type="hidden" class="q-image">
+      </div>
+      <button class="btn btn-danger" onclick="this.parentElement.remove()" style="width: 100%;">Usuń</button>
+    `;
+    container.appendChild(el);
+  },
+
+  previewImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const parent = input.parentElement;
+      const preview = parent.querySelector('.q-image-preview');
+      const hidden = parent.querySelector('.q-image');
+      const nameEl = parent.querySelector('.q-image-name');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      hidden.value = e.target.result;
+      if (nameEl) nameEl.textContent = file.name;
+    };
+    reader.readAsDataURL(file);
+  },
+
+  saveQuiz() {
+    const name = document.getElementById('quizName').value.trim();
+    if (!name) { alert('Wpisz nazwę'); return; }
+
+    const qs = [];
+    document.querySelectorAll('.question-item').forEach((el, i) => {
+      const text = el.querySelector('.q-text').value.trim();
+      const opts = [
+        el.querySelector('.q-opt-0').value.trim(),
+        el.querySelector('.q-opt-1').value.trim(),
+        el.querySelector('.q-opt-2').value.trim()
+      ];
+      const correct = parseInt(el.querySelector('.q-correct').value);
+      const image = el.querySelector('.q-image').value.trim() || null;
+
+      if (text && opts.every(o => o)) {
+        qs.push({
+          id: Date.now() + i,
+          text,
+          options: opts,
+          correct,
+          image,
+          mastered: false
+        });
+      }
+    });
+
+    if (qs.length === 0) { alert('Dodaj pytania'); return; }
+
+    if (this.editingQuizId) {
+      const quiz = this.quizzes.find(q => q.id === this.editingQuizId);
+      quiz.name = name;
+      quiz.questions = qs;
+      this.editingQuizId = null;
+      document.getElementById('addQuizTitle').textContent = 'Nowy quiz';
+    } else {
+      this.quizzes.push({ id: Date.now(), name, questions: qs });
+    }
+
+    this.save();
+    this.renderHome();
+  },
+
+  openResetModal(id) {
+    this.pendingResetId = id;
+    this.openModal('resetModal');
+  },
+
+  confirmReset() {
+    const quiz = this.quizzes.find(q => q.id === this.pendingResetId);
+    quiz.questions.forEach(q => q.mastered = false);
+    this.save();
+    this.renderHome();
+    this.closeModal('resetModal');
+  },
+
+  openDeleteModal(id) {
+    this.pendingDeleteId = id;
+    this.openModal('deleteModal');
+  },
+
+  confirmDelete() {
+    this.quizzes = this.quizzes.filter(q => q.id !== this.pendingDeleteId);
+    this.save();
+    this.renderHome();
+    this.closeModal('deleteModal');
+  },
+
+  save() {
+    localStorage.setItem('quizzes', JSON.stringify(this.quizzes));
+  }
+};
+
+app.init();
+</script>
+</body>
+</html>
